@@ -9,6 +9,8 @@ import {
   IconShieldCheck,
   IconSearch,
   IconFileText,
+  IconEye,
+  IconRepeat,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -53,6 +55,16 @@ const data = {
           title: "Curriculum Extraction",
           url: "/prompts/1004",
           icon: IconFileText,
+        },
+        {
+          title: "LLM Visual OCR",
+          url: "/prompts/1005",
+          icon: IconEye,
+        },
+        {
+          title: "Timetable Event Detection",
+          url: "/prompts/1006",
+          icon: IconRepeat,
         },
       ],
     },

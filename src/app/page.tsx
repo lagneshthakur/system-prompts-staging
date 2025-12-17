@@ -36,6 +36,7 @@ export default function Home() {
     fetchPrompts();
   }, []);
 
+  // TODO: add 1005 and 1006 descriptions
   const getPromptDescription = (id: number) => {
     switch (id) {
       case SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION:
