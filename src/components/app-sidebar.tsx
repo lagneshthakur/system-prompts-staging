@@ -11,6 +11,7 @@ import {
   IconFileText,
   IconEye,
   IconRepeat,
+  IconCategory,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -65,6 +66,11 @@ const data = {
           title: "Timetable Event Detection",
           url: "/prompts/1006",
           icon: IconRepeat,
+        },
+        {
+          title: "Document Type Classification",
+          url: "/prompts/1007",
+          icon: IconCategory,
         },
       ],
     },
