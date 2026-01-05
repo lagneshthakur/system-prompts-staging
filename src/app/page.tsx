@@ -47,6 +47,8 @@ export default function Home() {
         return "Matches timetable entries with existing activities and subjects";
       case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION:
         return "Extracts curriculum data from PDF documents using AI processing";
+      case SYSTEM_PROMPT_IDS.YEAR_FILTER:
+        return "Filters and extracts year-level data from documents";
       default:
         return "System prompt for AI processing";
     }

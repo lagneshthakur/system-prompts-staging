@@ -99,6 +99,7 @@ export const SYSTEM_PROMPT_IDS = {
   LLM_VISUAL_OCR: 1005,
   TIMETABLE_EVENT_DETECTION: 1006,
   DOCUMENT_TYPE_CLASSIFICATION: 1007,
+  YEAR_FILTER: 1008,
 } as const;
 
 export const SYSTEM_PROMPT_NAMES = {
@@ -109,6 +110,7 @@ export const SYSTEM_PROMPT_NAMES = {
   [SYSTEM_PROMPT_IDS.LLM_VISUAL_OCR]: 'LLM Visual OCR',
   [SYSTEM_PROMPT_IDS.TIMETABLE_EVENT_DETECTION]: 'Timetable Event Detection',
   [SYSTEM_PROMPT_IDS.DOCUMENT_TYPE_CLASSIFICATION]: 'Document Type Classification',
+  [SYSTEM_PROMPT_IDS.YEAR_FILTER]: 'Year Filter',
 } as const;
 
 export type SystemPromptId = typeof SYSTEM_PROMPT_IDS[keyof typeof SYSTEM_PROMPT_IDS];
