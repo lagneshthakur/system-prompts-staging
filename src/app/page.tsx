@@ -49,6 +49,18 @@ export default function Home() {
         return "Extracts curriculum data from PDF documents using AI processing";
       case SYSTEM_PROMPT_IDS.YEAR_FILTER:
         return "Filters and extracts year-level data from documents";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_MULTIPLE_YEAR:
+        return "Extracts curriculum data spanning multiple academic years";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_YEARLY:
+        return "Extracts curriculum data for a single academic year";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_FULL_TERM:
+        return "Extracts curriculum data for a full term period";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_HALF_TERM:
+        return "Extracts curriculum data for a half term period";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_LESSON_WEEK:
+        return "Extracts curriculum data at lesson or weekly level";
+      case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_OTHER:
+        return "Extracts curriculum data from other document formats";
       default:
         return "System prompt for AI processing";
     }
