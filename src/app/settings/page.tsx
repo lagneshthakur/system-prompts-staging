@@ -1,9 +1,6 @@
 "use client";
-import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const router = useRouter();
-
   function handleLogout() {
     localStorage.removeItem("isLoggedIn");
     window.location.reload();

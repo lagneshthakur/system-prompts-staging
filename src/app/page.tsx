@@ -95,7 +95,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-            {Object.entries(SYSTEM_PROMPT_IDS).map(([key, id]) => {
+            {Object.entries(SYSTEM_PROMPT_IDS).map(([, id]) => {
               const prompt = prompts.find(p => p.id === id);
               const name = SYSTEM_PROMPT_NAMES[id];
               const description = getPromptDescription(id);
