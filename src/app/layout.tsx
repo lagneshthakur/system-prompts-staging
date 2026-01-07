@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+"use client";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,29 +16,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "System Prompts Dashboard",
-  description: "Manage and edit system prompts for the Teachers App AI services",
-};
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+
+const Login = dynamic(() => import("./login"), { ssr: false });
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsLoggedIn(localStorage.getItem("isLoggedIn") === "1");
+    }
+  }, []);
+
+  function handleLoginSuccess() {
+    setIsLoggedIn(true);
+  }
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {isLoggedIn ? (
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <main className="flex-1 overflow-auto">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        ) : (
+          <Login onSuccess={handleLoginSuccess} />
+        )}
         <Toaster />
       </body>
     </html>
