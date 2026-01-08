@@ -1,39 +1,84 @@
+"use client";
+
 import { useState } from "react";
-
-const OBFUSCATED_SECRET = [109, 111, 100, 101, 115, 105, 103, 110]; // "modesign" as char codes
-
-function decodeSecret(arr: number[]) {
-  return String.fromCharCode(...arr);
-}
+import { login } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [input, setInput] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (input === decodeSecret(OBFUSCATED_SECRET)) {
-      localStorage.setItem("isLoggedIn", "1");
+    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    setLoading(true);
+
+    const result = await login(email, password);
+
+    if (result.success) {
       onSuccess();
     } else {
-      setError("Invalid code");
+      setError(result.error || "Login failed");
+      setLoading(false);
     }
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <form onSubmit={handleSubmit} style={{ minWidth: 320, padding: 32, borderRadius: 8, boxShadow: "0 2px 16px #0002", background: "#fff" }}>
-        <h2 style={{ marginBottom: 24 }}>Login</h2>
-        <input
-          type="password"
-          placeholder="Enter secret code"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          style={{ width: "100%", padding: 8, marginBottom: 16, borderRadius: 4, border: "1px solid #ccc" }}
-        />
-        <button type="submit" style={{ width: "100%", padding: 10, borderRadius: 4, background: "#222", color: "#fff", border: 0 }}>Login</button>
-        {error && <div style={{ color: "#c00", marginTop: 12 }}>{error}</div>}
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <CardDescription>
+            Enter your credentials to access the dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@brainmo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                autoComplete="email"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="your secret"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="current-password"
+              />
+            </div>
+            {error && (
+              <div className="text-sm text-destructive">{error}</div>
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

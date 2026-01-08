@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { isAuthenticated } from "@/lib/auth";
 
 const Login = dynamic(() => import("./login"), { ssr: false });
 
@@ -27,10 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsLoggedIn(localStorage.getItem("isLoggedIn") === "1");
-    }
+    setIsLoggedIn(isAuthenticated());
+    setIsChecking(false);
   }, []);
 
   function handleLoginSuccess() {
@@ -40,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {isLoggedIn ? (
+        {isChecking ? null : isLoggedIn ? (
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>

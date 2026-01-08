@@ -3,6 +3,8 @@
  * Handles communication with the backend API
  */
 
+import { getAccessToken, clearAuthState } from './auth';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 export interface SystemPrompt {
@@ -30,10 +32,18 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    // Get auth token and add to headers
+    const token = getAccessToken();
+    const authHeaders: Record<string, string> = {};
+    if (token) {
+      authHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...options.headers,
       },
       ...options,
@@ -45,14 +55,23 @@ class ApiClient {
       }
 
       const response = await fetch(url, config);
-      
+
+      // Handle unauthorized - clear auth and redirect
+      if (response.status === 401) {
+        clearAuthState();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
+        return { error: 'Session expired. Please login again.' };
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      
+
       if (process.env.NEXT_PUBLIC_API_LOGGING_ENABLED === 'true') {
         console.log(`✅ API Response: ${config.method || 'GET'} ${url}`, data);
       }
@@ -60,7 +79,7 @@ class ApiClient {
       return { data };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       if (process.env.NEXT_PUBLIC_API_LOGGING_ENABLED === 'true') {
         console.error(`❌ API Error: ${config.method || 'GET'} ${url}`, errorMessage);
       }
