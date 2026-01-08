@@ -121,7 +121,7 @@ export function getTeacher(): Teacher | null {
  */
 export async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/signin-resume`, {
+    const response = await fetch(`${API_BASE_URL}/auth/signin-admin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
