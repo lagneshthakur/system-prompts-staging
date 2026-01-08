@@ -1,5 +1,5 @@
 /**
- * Authentication module for the Teachers App
+ * Authentication module for the BrainMo App
  * Handles login, logout, token storage, and auth state management
  */
 

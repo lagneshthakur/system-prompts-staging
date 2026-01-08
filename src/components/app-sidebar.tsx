@@ -36,7 +36,7 @@ const data = {
     },
     {
       title: "System Prompts",
-      url: "#",
+      url: "/prompts",
       icon: IconBrain,
       items: [
         {
@@ -103,7 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/">
                 <IconBrain className="!size-5" />
-                <span className="text-base font-semibold">System Prompts</span>
+                <span className="text-base font-semibold">BrainMo Backdoor</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

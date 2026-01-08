@@ -1,6 +1,6 @@
 # 🎨 System Prompts Dashboard
 
-A user-friendly web application for **designers and non-technical users** to manage and edit AI system prompts for the Teachers App. This tool allows you to safely modify the prompts that control how our AI services process timetables and curriculum data.
+A user-friendly web application for **designers and non-technical users** to manage and edit AI system prompts for the BrainMo App. This tool allows you to safely modify the prompts that control how our AI services process timetables and curriculum data.
 
 ## 📋 What This Tool Does
 
