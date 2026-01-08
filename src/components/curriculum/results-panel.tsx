@@ -2,19 +2,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { IconCopy, IconAlertTriangle } from "@tabler/icons-react";
-import type { InspectionResponse, InspectionOptions } from "@/lib/curriculum-api";
+import {
+  type InspectionResponse,
+  type LLMCall,
+  InspectionStep,
+  INSPECTION_STEP_LABELS,
+  formatOutput,
+  isJsonOutput,
+} from "@/lib/curriculum-api";
 
 interface ResultsPanelProps {
   results: InspectionResponse | null;
-  options: InspectionOptions;
-  yearGroup: string;
   error: string | null;
 }
 
-function CodeBlock({ children, label }: { children: string; label: string }) {
+function CodeBlock({ children, label, isJson = false }: { children: string; label: string; isJson?: boolean }) {
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(children);
@@ -27,13 +33,16 @@ function CodeBlock({ children, label }: { children: string; label: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{label}</span>
+          {isJson && <Badge variant="outline" className="text-xs">JSON</Badge>}
+        </div>
         <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7">
           <IconCopy className="h-3.5 w-3.5 mr-1" />
           Copy
         </Button>
       </div>
-      <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm font-mono whitespace-pre-wrap max-h-80">
+      <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm font-mono whitespace-pre-wrap max-h-96">
         {children}
       </pre>
     </div>
@@ -69,40 +78,68 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export function ResultsPanel({ results, options, yearGroup, error }: ResultsPanelProps) {
+/**
+ * Remove term_metadata key from each root object in the processed data
+ */
+function cleanProcessedData(data: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { term_metadata, ...rest } = value as Record<string, unknown>;
+      cleaned[key] = rest;
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
+function LLMCallPanel({ call }: { call: LLMCall }) {
+  const formattedOutput = formatOutput(call.output);
+  const outputIsJson = isJsonOutput(call.output);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <h3 className="text-lg font-semibold">{INSPECTION_STEP_LABELS[call.step]}</h3>
+        <Badge variant="secondary" className="text-xs">{call.model}</Badge>
+      </div>
+
+      {call.input !== null ? (
+        <CodeBlock label="Input">
+          {call.input}
+        </CodeBlock>
+      ) : (
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-muted-foreground">Input</span>
+          <p className="text-sm text-muted-foreground italic">No input (internal processing)</p>
+        </div>
+      )}
+
+      <CodeBlock label="Output" isJson={outputIsJson}>
+        {formattedOutput}
+      </CodeBlock>
+    </div>
+  );
+}
+
+export function ResultsPanel({ results, error }: ResultsPanelProps) {
   if (error) {
     return <ErrorState message={error} />;
   }
 
-  if (!results) {
+  if (!results || results.llmCalls.length === 0) {
     return <EmptyState />;
   }
 
-  // Determine which tabs to show based on options and available results
-  const tabs: { value: string; label: string; available: boolean }[] = [
-    {
-      value: 'classification',
-      label: 'Classification',
-      available: options.showClassification && !!results.classification,
-    },
-    {
-      value: 'yearFiltering',
-      label: 'Year Filtering',
-      available: options.showYearFiltering && !!results.yearFiltering,
-    },
-    {
-      value: 'extraction',
-      label: 'Extraction',
-      available: options.showExtraction && !!results.extraction,
-    },
-  ];
+  const { llmCalls, processedData } = results;
+  const defaultTab = llmCalls[0]?.step || InspectionStep.CLASSIFICATION;
 
-  const availableTabs = tabs.filter(t => t.available);
-  const defaultTab = availableTabs[0]?.value || 'classification';
-
-  if (availableTabs.length === 0) {
-    return <EmptyState />;
-  }
+  // Find LO extraction call - Processed LOs tab only shows when extraction is included
+  const loExtractionCall = llmCalls.find(call => call.step === InspectionStep.LO_EXTRACTION);
+  const loExtractionOutput = loExtractionCall ? formatOutput(loExtractionCall.output) : null;
+  const showProcessedLOs = processedData && loExtractionCall;
 
   return (
     <Card>
@@ -112,57 +149,36 @@ export function ResultsPanel({ results, options, yearGroup, error }: ResultsPane
       <CardContent>
         <Tabs defaultValue={defaultTab}>
           <TabsList>
-            {availableTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
+            {llmCalls.map((call) => (
+              <TabsTrigger key={call.step} value={call.step}>
+                {INSPECTION_STEP_LABELS[call.step]}
               </TabsTrigger>
             ))}
+            {showProcessedLOs && (
+              <TabsTrigger value="processed_los">
+                Processed LOs
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          {results.classification && (
-            <TabsContent value="classification" className="space-y-6 mt-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Document Classification</h3>
-                <div className="space-y-6">
-                  <CodeBlock label="Input to Classifier">
-                    {results.classification.input}
-                  </CodeBlock>
-                  <CodeBlock label="Output">
-                    {JSON.stringify(results.classification.output, null, 2)}
-                  </CodeBlock>
-                </div>
-              </div>
+          {llmCalls.map((call) => (
+            <TabsContent key={call.step} value={call.step} className="mt-4">
+              <LLMCallPanel call={call} />
             </TabsContent>
-          )}
+          ))}
 
-          {results.yearFiltering && (
-            <TabsContent value="yearFiltering" className="space-y-6 mt-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Year Filtering</h3>
-                <div className="space-y-6">
-                  <CodeBlock label="Input Chunks">
-                    {results.yearFiltering.inputChunks.join('\n\n')}
-                  </CodeBlock>
-                  <CodeBlock label={`Filtered Output (${yearGroup})`}>
-                    {results.yearFiltering.filteredOutput}
-                  </CodeBlock>
-                </div>
-              </div>
-            </TabsContent>
-          )}
+          {showProcessedLOs && (
+            <TabsContent value="processed_los" className="mt-4">
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Processed LOs</h3>
 
-          {results.extraction && (
-            <TabsContent value="extraction" className="space-y-6 mt-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Curriculum Extraction</h3>
-                <div className="space-y-6">
-                  <CodeBlock label="Prompt Sent to LLM">
-                    {results.extraction.prompt}
-                  </CodeBlock>
-                  <CodeBlock label="Raw Extraction Output">
-                    {JSON.stringify(results.extraction.output, null, 2)}
-                  </CodeBlock>
-                </div>
+                <CodeBlock label="Input (LO Extraction Output)" isJson>
+                  {loExtractionOutput!}
+                </CodeBlock>
+
+                <CodeBlock label="Output (Processed Data)" isJson>
+                  {JSON.stringify(cleanProcessedData(processedData), null, 2)}
+                </CodeBlock>
               </div>
             </TabsContent>
           )}

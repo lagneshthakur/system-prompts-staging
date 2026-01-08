@@ -34,12 +34,54 @@ export function InspectionOptionsPanel({
   onOptionsChange,
   disabled = false,
 }: InspectionOptionsPanelProps) {
+  /**
+   * Pipeline logic:
+   * - Classification is the first step, always required if any step is checked
+   * - Year Filtering requires Classification
+   * - Extraction requires both Classification and Year Filtering
+   *
+   * When checking a step, auto-check all previous steps.
+   * When unchecking a step, auto-uncheck all subsequent steps.
+   */
   function handleOptionChange(key: keyof InspectionOptions, checked: boolean) {
-    onOptionsChange({
-      ...options,
-      [key]: checked,
-    });
+    const newOptions = { ...options };
+
+    if (checked) {
+      // When checking, also check all previous steps
+      if (key === 'showClassification') {
+        newOptions.showClassification = true;
+      } else if (key === 'showYearFiltering') {
+        newOptions.showClassification = true;
+        newOptions.showYearFiltering = true;
+      } else if (key === 'showExtraction') {
+        newOptions.showClassification = true;
+        newOptions.showYearFiltering = true;
+        newOptions.showExtraction = true;
+      }
+    } else {
+      // When unchecking, also uncheck all subsequent steps
+      if (key === 'showClassification') {
+        newOptions.showClassification = false;
+        newOptions.showYearFiltering = false;
+        newOptions.showExtraction = false;
+      } else if (key === 'showYearFiltering') {
+        newOptions.showYearFiltering = false;
+        newOptions.showExtraction = false;
+      } else if (key === 'showExtraction') {
+        newOptions.showExtraction = false;
+      }
+    }
+
+    // Ensure at least one option stays checked
+    if (!newOptions.showClassification && !newOptions.showYearFiltering && !newOptions.showExtraction) {
+      return;
+    }
+
+    onOptionsChange(newOptions);
   }
+
+  // Classification can't be unchecked if it's the only one checked
+  const isClassificationLocked = options.showClassification && !options.showYearFiltering && !options.showExtraction;
 
   return (
     <Card>
@@ -47,7 +89,14 @@ export function InspectionOptionsPanel({
         <CardTitle>Inspection Options</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {INSPECTION_OPTIONS.map((option) => (
+        {INSPECTION_OPTIONS.map((option) => {
+          // Determine if this checkbox should be disabled
+          let isDisabled = disabled;
+          if (option.key === 'showClassification' && isClassificationLocked) {
+            isDisabled = true;
+          }
+
+          return (
           <div key={option.key} className="flex items-start space-x-3">
             <Checkbox
               id={option.key}
@@ -55,7 +104,7 @@ export function InspectionOptionsPanel({
               onCheckedChange={(checked) =>
                 handleOptionChange(option.key, checked === true)
               }
-              disabled={disabled}
+              disabled={isDisabled}
               className="mt-0.5"
             />
             <div className="space-y-1">
@@ -70,7 +119,8 @@ export function InspectionOptionsPanel({
               </p>
             </div>
           </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );

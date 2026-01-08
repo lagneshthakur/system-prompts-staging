@@ -16,11 +16,11 @@ import { toast } from "sonner";
 
 export default function CurriculumPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [yearGroup, setYearGroup] = useState<string>("");
+  const [yearGroup, setYearGroup] = useState<string>("Year 1");
   const [options, setOptions] = useState<InspectionOptions>({
     showClassification: true,
     showYearFiltering: true,
-    showExtraction: true,
+    showExtraction: false,
   });
   const [results, setResults] = useState<InspectionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -102,8 +102,6 @@ export default function CurriculumPage() {
           {/* Results Section */}
           <ResultsPanel
             results={results}
-            options={options}
-            yearGroup={yearGroup}
             error={error}
           />
         </div>

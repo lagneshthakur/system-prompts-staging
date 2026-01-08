@@ -3,48 +3,72 @@
  * Handles curriculum document inspection for QA/Debug purposes
  */
 
-// Types
+import { getAccessToken, clearAuthState } from './auth';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+
+// Pipeline step enum - matches the backend llm_calls steps
+export enum InspectionStep {
+  CLASSIFICATION = 'classification',
+  YEAR_FILTERING = 'year_filtering',
+  LO_EXTRACTION = 'lo_extraction',
+}
+
+// Display names for each step (used in tabs)
+export const INSPECTION_STEP_LABELS: Record<InspectionStep, string> = {
+  [InspectionStep.CLASSIFICATION]: 'Classification',
+  [InspectionStep.YEAR_FILTERING]: 'Year Filtering',
+  [InspectionStep.LO_EXTRACTION]: 'LO Extraction',
+};
+
+// Single LLM call result - matches backend llm_calls array item
+export interface LLMCall {
+  step: InspectionStep;
+  model: string;
+  input: string | null;
+  output: string; // Always a JSON string from the API
+}
+
+// Inspection options for selecting which steps to show
 export interface InspectionOptions {
   showClassification: boolean;
   showYearFiltering: boolean;
   showExtraction: boolean;
 }
 
-export interface ClassificationResult {
-  input: string;
-  output: {
-    document_type: 'multiple_year' | 'yearly' | 'full_term' | 'half_term' | 'lesson_week' | 'other';
-    confidence: number;
-  };
+// Maps inspection options to steps
+export function getEnabledSteps(options: InspectionOptions): InspectionStep[] {
+  const steps: InspectionStep[] = [];
+  if (options.showClassification) steps.push(InspectionStep.CLASSIFICATION);
+  if (options.showYearFiltering) steps.push(InspectionStep.YEAR_FILTERING);
+  if (options.showExtraction) steps.push(InspectionStep.LO_EXTRACTION);
+  return steps;
 }
 
-export interface YearFilteringResult {
-  inputChunks: string[];
-  filteredOutput: string;
+/**
+ * Get the stopped_after value based on the highest checked step.
+ * The pipeline is: classification -> year_filtering -> lo_extraction
+ * Returns the last step that should be executed.
+ */
+export function getStoppedAfter(options: InspectionOptions): InspectionStep {
+  if (options.showExtraction) {
+    return InspectionStep.LO_EXTRACTION;
+  }
+  if (options.showYearFiltering) {
+    return InspectionStep.YEAR_FILTERING;
+  }
+  return InspectionStep.CLASSIFICATION;
 }
 
-export interface LearningObjective {
-  title: string;
-  week: number;
-  subject?: string;
-}
-
-export interface ExtractionResult {
-  prompt: string;
-  output: {
-    learning_objectives: LearningObjective[];
-  };
-}
-
+// The inspection response containing LLM calls and processed data
 export interface InspectionResponse {
-  classification?: ClassificationResult;
-  yearFiltering?: YearFilteringResult;
-  extraction?: ExtractionResult;
+  llmCalls: LLMCall[];
+  processedData: Record<string, unknown> | null; // The 'data' key from API response
 }
 
 export interface InspectionError {
   message: string;
-  stage?: 'classification' | 'year_filtering' | 'extraction';
+  stage?: InspectionStep;
 }
 
 // Year groups available for selection
@@ -72,116 +96,178 @@ export const ACCEPTED_FILE_TYPES = {
 
 export const ACCEPTED_EXTENSIONS = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
 
-// Dummy data generators
-function generateDummyClassification(fileName: string): ClassificationResult {
-  const sampleText = `Document: ${fileName}\n\nThis curriculum document outlines the learning objectives for the academic year. It includes topics covering Mathematics, English, Science, and other core subjects. The document is structured by terms and includes weekly breakdowns of learning goals.\n\nKey sections include:\n- Autumn Term objectives\n- Spring Term objectives\n- Summer Term objectives\n\nEach section details specific skills and knowledge areas...`;
-
-  const documentTypes: ClassificationResult['output']['document_type'][] = [
-    'half_term', 'yearly', 'full_term', 'lesson_week', 'multiple_year'
-  ];
-  const randomType = documentTypes[Math.floor(Math.random() * documentTypes.length)];
-
-  return {
-    input: sampleText.slice(0, 500),
-    output: {
-      document_type: randomType,
-      confidence: 0.85 + Math.random() * 0.14, // 0.85 - 0.99
-    },
-  };
+// Backend API response types
+interface BackendLLMCall {
+  step: string;
+  model: string;
+  input: string | null;
+  output: string;
 }
 
-function generateDummyYearFiltering(yearGroup: string): YearFilteringResult {
-  const year = yearGroup.replace('Year ', '');
-  const otherYear = parseInt(year) === 3 ? '2' : '3';
-
-  return {
-    inputChunks: [
-      `Chunk 1: "Autumn Term – Year ${otherYear}: Students will explore basic addition and subtraction, focusing on number bonds to 20. English lessons will introduce simple sentence structures and phonics patterns."`,
-      `Chunk 2: "Spring Term – Year ${year}: Focus on multiplication tables (2, 5, 10) and division concepts. Students will write narrative stories with clear beginning, middle, and end structures."`,
-      `Chunk 3: "Summer Term – Year ${year}: Geography unit on local area mapping. Science focus on plants and habitats. Mathematics continues with fractions and measurement."`,
-      `Chunk 4: "Autumn Term – Year ${year}: Introduction to place value up to 1000. Reading comprehension strategies and inference skills development."`,
-    ],
-    filteredOutput: `Spring Term – Year ${year}: Focus on multiplication tables (2, 5, 10) and division concepts. Students will write narrative stories with clear beginning, middle, and end structures.
-
-Summer Term – Year ${year}: Geography unit on local area mapping. Science focus on plants and habitats. Mathematics continues with fractions and measurement.
-
-Autumn Term – Year ${year}: Introduction to place value up to 1000. Reading comprehension strategies and inference skills development.`,
-  };
-}
-
-function generateDummyExtraction(yearGroup: string): ExtractionResult {
-  return {
-    prompt: `You are an expert curriculum analyzer. Extract all learning objectives from the following curriculum document for ${yearGroup}.
-
-Return the results as a JSON object with the following structure:
-{
-  "learning_objectives": [
-    {
-      "title": "Brief description of the learning objective",
-      "week": <week number>,
-      "subject": "Subject area (Maths, English, Science, etc.)"
-    }
-  ]
-}
-
-Document content:
-[Filtered curriculum content for ${yearGroup}]
-
-Extract all learning objectives maintaining the original intent and specificity.`,
-    output: {
-      learning_objectives: [
-        { title: "Understand place value up to 1000", week: 1, subject: "Maths" },
-        { title: "Read and write numbers in numerals and words", week: 1, subject: "Maths" },
-        { title: "Write narrative stories with clear structure", week: 2, subject: "English" },
-        { title: "Use conjunctions to join sentences", week: 2, subject: "English" },
-        { title: "Identify properties of 2D and 3D shapes", week: 3, subject: "Maths" },
-        { title: "Measure length using standard units", week: 3, subject: "Maths" },
-        { title: "Explore habitats and living things", week: 4, subject: "Science" },
-        { title: "Classify animals by their characteristics", week: 4, subject: "Science" },
-        { title: "Multiply and divide by 2, 5, and 10", week: 5, subject: "Maths" },
-        { title: "Write instructions with imperative verbs", week: 5, subject: "English" },
-        { title: "Understand food chains and ecosystems", week: 6, subject: "Science" },
-        { title: "Use maps and compass directions", week: 6, subject: "Geography" },
-      ],
-    },
-  };
+interface BackendApiResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+  processing_metadata?: Record<string, unknown>;
+  llm_calls?: BackendLLMCall[];
+  error?: string;
+  message?: string;
 }
 
 /**
- * Run curriculum inspection (dummy implementation)
- * In production, this will call the actual backend API
+ * Run curriculum inspection using the real backend API
  */
 export async function runInspection(
   file: File,
   yearGroup: string,
   options: InspectionOptions
 ): Promise<{ data?: InspectionResponse; error?: InspectionError }> {
-  // Simulate network delay (2-3 seconds)
-  await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+  const token = getAccessToken();
 
-  // Simulate occasional errors (10% chance)
-  if (Math.random() < 0.1) {
+  if (!token) {
     return {
       error: {
-        message: 'Failed to process document. Please try again.',
-        stage: 'classification',
+        message: 'Not authenticated. Please login again.',
       },
     };
   }
 
-  const response: InspectionResponse = {};
+  // Build FormData payload
+  const formData = new FormData();
+  formData.append('files', file);
+  formData.append('use_llm_fallback', 'false');
+  // Extract year number from "Year X" format
+  const yearNumber = yearGroup.replace('Year ', '');
+  formData.append('year_group', yearNumber);
+  // Add stop_after based on which checkboxes are selected
+  const stopAfter = getStoppedAfter(options);
+  formData.append('stop_after', stopAfter);
 
-  if (options.showClassification) {
-    response.classification = generateDummyClassification(file.name);
+  try {
+    const response = await fetch(`${API_BASE_URL}/curriculum-parser/extract-los-multi-file`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Don't set Content-Type - browser will set it with boundary for FormData
+      },
+      body: formData,
+    });
+
+    // Handle unauthorized
+    if (response.status === 401) {
+      clearAuthState();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+      return {
+        error: {
+          message: 'Session expired. Please login again.',
+        },
+      };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        error: {
+          message: `API Error (${response.status}): ${errorText}`,
+        },
+      };
+    }
+
+    const data: BackendApiResponse = await response.json();
+
+    if (!data.success) {
+      return {
+        error: {
+          message: data.message || data.error || 'Processing failed',
+        },
+      };
+    }
+
+    // Transform backend llm_calls to our format
+    const llmCalls: LLMCall[] = [];
+    const enabledSteps = getEnabledSteps(options);
+
+    if (data.llm_calls) {
+      for (const call of data.llm_calls) {
+        // Map backend step names to our enum
+        let step: InspectionStep | null = null;
+        if (call.step === 'classification') {
+          step = InspectionStep.CLASSIFICATION;
+        } else if (call.step === 'year_filtering') {
+          step = InspectionStep.YEAR_FILTERING;
+        } else if (call.step === 'lo_extraction') {
+          step = InspectionStep.LO_EXTRACTION;
+        }
+
+        // Only include if step is recognized and enabled
+        if (step && enabledSteps.includes(step)) {
+          llmCalls.push({
+            step,
+            model: call.model,
+            input: call.input,
+            output: call.output,
+          });
+        }
+      }
+    }
+
+    return { data: { llmCalls, processedData: data.data || null } };
+  } catch (error) {
+    return {
+      error: {
+        message: error instanceof Error ? error.message : 'Network error. Please try again.',
+      },
+    };
   }
+}
 
-  if (options.showYearFiltering) {
-    response.yearFiltering = generateDummyYearFiltering(yearGroup);
+/**
+ * Helper to parse JSON output safely
+ * Returns formatted JSON string or the original string if not valid JSON
+ */
+export function formatOutput(output: string): string {
+  // Handle markdown code blocks (```json ... ```)
+  let cleanOutput = output.trim();
+  if (cleanOutput.startsWith('```json')) {
+    cleanOutput = cleanOutput.slice(7); // Remove ```json
+  } else if (cleanOutput.startsWith('```')) {
+    cleanOutput = cleanOutput.slice(3); // Remove ```
   }
-
-  if (options.showExtraction) {
-    response.extraction = generateDummyExtraction(yearGroup);
+  if (cleanOutput.endsWith('```')) {
+    cleanOutput = cleanOutput.slice(0, -3); // Remove trailing ```
   }
+  cleanOutput = cleanOutput.trim();
 
-  return { data: response };
+  try {
+    const parsed = JSON.parse(cleanOutput);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    // Not JSON, return original (not cleaned) to preserve markdown if present
+    return output;
+  }
+}
+
+/**
+ * Helper to check if output is valid JSON
+ */
+export function isJsonOutput(output: string): boolean {
+  // Handle markdown code blocks
+  let cleanOutput = output.trim();
+  if (cleanOutput.startsWith('```json')) {
+    cleanOutput = cleanOutput.slice(7);
+  } else if (cleanOutput.startsWith('```')) {
+    cleanOutput = cleanOutput.slice(3);
+  }
+  if (cleanOutput.endsWith('```')) {
+    cleanOutput = cleanOutput.slice(0, -3);
+  }
+  cleanOutput = cleanOutput.trim();
+
+  try {
+    JSON.parse(cleanOutput);
+    return true;
+  } catch {
+    return false;
+  }
 }
