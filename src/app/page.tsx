@@ -25,7 +25,7 @@ const features = [
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <SiteHeader title="BrainMo Admin" subtitle="Internal Tools" />
+      <SiteHeader title="BrainMo Backdoor" subtitle="Internal Tools" />
       <div className="flex-1 p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center space-y-2 py-8">
