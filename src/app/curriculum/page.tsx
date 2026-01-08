@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
 import { InputPanel } from "@/components/curriculum/input-panel";
 import { InspectionOptionsPanel } from "@/components/curriculum/inspection-options";
 import { ResultsPanel } from "@/components/curriculum/results-panel";
@@ -59,16 +58,7 @@ export default function CurriculumPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b">
-        <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mx-2 h-4" />
-          <div>
-            <h1 className="text-base font-medium">Curriculum Extraction Inspector</h1>
-            <p className="text-xs text-muted-foreground">Internal QA / Debug Tool</p>
-          </div>
-        </div>
-      </header>
+      <SiteHeader title="Curriculum Extraction Inspector" subtitle="Internal QA / Debug Tool" />
 
       <div className="flex-1 overflow-auto p-4 lg:p-6">
         <div className="max-w-4xl mx-auto space-y-6">

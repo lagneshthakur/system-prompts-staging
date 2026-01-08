@@ -95,7 +95,7 @@ export default function PromptEditor() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <SiteHeader />
+        <SiteHeader title="System Prompts Dashboard" subtitle="LLM Prompts" />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex items-center space-x-2">
             <IconLoader2 className="h-6 w-6 animate-spin" />
@@ -109,7 +109,7 @@ export default function PromptEditor() {
   if (error || !promptName) {
     return (
       <div className="flex flex-col min-h-screen">
-        <SiteHeader />
+        <SiteHeader title="System Prompts Dashboard" subtitle="LLM Prompts" />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <IconAlertCircle className="h-12 w-12 text-red-500 mx-auto" />
@@ -127,7 +127,7 @@ export default function PromptEditor() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <SiteHeader />
+      <SiteHeader title="System Prompts Dashboard" subtitle="LLM Prompts" />
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
