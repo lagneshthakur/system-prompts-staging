@@ -247,14 +247,16 @@ Summer Term – Year 3: Geography and history..."
 
 | # | Task | Files | Status |
 |---|------|-------|--------|
-| 1 | Create Checkbox UI component | `src/components/ui/checkbox.tsx` | ⬜ |
-| 2 | Create curriculum API with types & dummy data | `src/lib/curriculum-api.ts` | ⬜ |
-| 3 | Create Input Panel component | `src/components/curriculum/input-panel.tsx` | ⬜ |
-| 4 | Create Inspection Options component | `src/components/curriculum/inspection-options.tsx` | ⬜ |
-| 5 | Create Results Panel component | `src/components/curriculum/results-panel.tsx` | ⬜ |
-| 6 | Create main Curriculum page | `src/app/curriculum/page.tsx` | ⬜ |
-| 7 | Update sidebar navigation | `src/components/app-sidebar.tsx` | ⬜ |
-| 8 | Test and verify build | - | ⬜ |
+| 1 | Create Checkbox UI component | `src/components/ui/checkbox.tsx` | ✅ |
+| 2 | Create curriculum API with types & dummy data | `src/lib/curriculum-api.ts` | ✅ |
+| 3 | Create Input Panel component | `src/components/curriculum/input-panel.tsx` | ✅ |
+| 4 | Create Inspection Options component | `src/components/curriculum/inspection-options.tsx` | ✅ |
+| 5 | Create Results Panel component | `src/components/curriculum/results-panel.tsx` | ✅ |
+| 6 | Create main Curriculum page | `src/app/curriculum/page.tsx` | ✅ |
+| 7 | Update sidebar navigation | `src/components/app-sidebar.tsx` | ✅ |
+| 8 | Test and verify build | - | ✅ |
+
+**Implementation completed on: 2026-01-08**
 
 ---
 

@@ -13,6 +13,7 @@ import {
   IconEye,
   IconRepeat,
   IconCategory,
+  IconFileSearch,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -74,6 +75,11 @@ const data = {
           icon: IconCategory,
         },
       ],
+    },
+    {
+      title: "Curriculum Extraction",
+      url: "/curriculum",
+      icon: IconFileSearch,
     },
   ],
   navSecondary: [
