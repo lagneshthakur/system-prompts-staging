@@ -74,6 +74,11 @@ const data = {
           url: "/prompts/1007",
           icon: IconCategory,
         },
+        {
+          title: "Cover Focus Card",
+          url: "/prompts/1015",
+          icon: IconFileText,
+        },
       ],
     },
     {

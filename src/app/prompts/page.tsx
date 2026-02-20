@@ -10,6 +10,39 @@ import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/site-header";
 import { apiClient, SYSTEM_PROMPT_IDS, SYSTEM_PROMPT_NAMES, SystemPrompt } from "@/lib/api";
 
+const PROMPT_GROUPS = [
+  {
+    title: "Timetable Prompts",
+    ids: [
+      SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION,
+      SYSTEM_PROMPT_IDS.TIMETABLE_VALIDATION,
+      SYSTEM_PROMPT_IDS.TIMETABLE_LOOKUP,
+      SYSTEM_PROMPT_IDS.LLM_VISUAL_OCR,
+      SYSTEM_PROMPT_IDS.TIMETABLE_EVENT_DETECTION,
+    ],
+  },
+  {
+    title: "Curriculum Prompts",
+    ids: [
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION,
+      SYSTEM_PROMPT_IDS.DOCUMENT_TYPE_CLASSIFICATION,
+      SYSTEM_PROMPT_IDS.YEAR_FILTER,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_MULTIPLE_YEAR,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_YEARLY,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_FULL_TERM,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_HALF_TERM,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_LESSON_WEEK,
+      SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_OTHER,
+    ],
+  },
+  {
+    title: "Cover Prompts",
+    ids: [
+      SYSTEM_PROMPT_IDS.COVER_FOCUS_CARD,
+    ],
+  },
+] as const;
+
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<SystemPrompt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +94,8 @@ export default function PromptsPage() {
         return "Extracts curriculum data at lesson or weekly level";
       case SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_OTHER:
         return "Extracts curriculum data from other document formats";
+      case SYSTEM_PROMPT_IDS.COVER_FOCUS_CARD:
+        return "Generates focused cover card content for cover workflows";
       default:
         return "System prompt for AI processing";
     }
@@ -94,43 +129,52 @@ export default function PromptsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-            {Object.entries(SYSTEM_PROMPT_IDS).map(([, id]) => {
-              const prompt = prompts.find(p => p.id === id);
-              const name = SYSTEM_PROMPT_NAMES[id];
-              const description = getPromptDescription(id);
+          <div className="space-y-8">
+            {PROMPT_GROUPS.map((group) => (
+              <section key={group.title} className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight">{group.title}</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                  {group.ids.map((id) => {
+                    const prompt = prompts.find(p => p.id === id);
+                    const name = SYSTEM_PROMPT_NAMES[id];
+                    const description = getPromptDescription(id);
 
-              return (
-                <Card key={id} className="relative">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <IconBrain className="h-5 w-5" />
-                        <CardTitle className="text-lg">{name}</CardTitle>
-                      </div>
-                      <Badge variant="secondary">ID: {id}</Badge>
-                    </div>
-                    <CardDescription>{description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="text-sm text-muted-foreground">
-                        <p>Content Length: {prompt?.content?.length || 0} characters</p>
-                        <p>Last Updated: {prompt?.updated_at ? new Date(prompt.updated_at).toLocaleDateString() : 'Never'}</p>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button asChild>
-                          <Link href={`/prompts/${id}`}>
-                            <IconEdit className="h-4 w-4 mr-2" />
-                            Edit Prompt
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    return (
+                      <Card key={id} className="relative">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <IconBrain className="h-5 w-5" />
+                              <CardTitle className="text-lg">{name}</CardTitle>
+                            </div>
+                            <Badge variant="secondary">ID: {id}</Badge>
+                          </div>
+                          <CardDescription>{description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="text-sm text-muted-foreground">
+                              <p>Content Length: {prompt?.content?.length || 0} characters</p>
+                              <p>Last Updated: {prompt?.updated_at ? new Date(prompt.updated_at).toLocaleDateString() : 'Never'}</p>
+                            </div>
+                            <div className="flex justify-end">
+                              <Button asChild>
+                                <Link href={`/prompts/${id}`}>
+                                  <IconEdit className="h-4 w-4 mr-2" />
+                                  Edit Prompt
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
