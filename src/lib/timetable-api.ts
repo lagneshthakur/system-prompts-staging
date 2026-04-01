@@ -46,6 +46,12 @@ export interface TimetableOcrOutput {
   rows: TimetableRow[];
 }
 
+export interface TimetableRawOcrOutput {
+  ocr_text?: string;
+  raw_response?: string;
+  [key: string]: unknown;
+}
+
 export interface TimetableActivity {
   day: string;
   start_time: string;
@@ -97,10 +103,373 @@ interface BackendTimetableResponse {
   success: boolean;
   message?: string;
   data?: TimetableExtractionMetadata;
-  ocrOutput?: TimetableOcrOutput;
+  ocrOutput?: TimetableOcrOutput | TimetableRawOcrOutput | string;
   activities?: TimetableActivity[];
   error?: string;
   [key: string]: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function parseString(value: unknown, fallback = ""): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return fallback;
+}
+
+function parsePythonLikeLiteral(input: string): unknown {
+  const source = input.trim();
+  let index = 0;
+
+  function skipWhitespace() {
+    while (index < source.length && /\s/.test(source[index])) {
+      index += 1;
+    }
+  }
+
+  function parseQuotedString(quote: "'" | '"'): string {
+    index += 1;
+    let result = "";
+
+    while (index < source.length) {
+      const char = source[index];
+      index += 1;
+
+      if (char === "\\") {
+        if (index >= source.length) {
+          break;
+        }
+
+        const escaped = source[index];
+        index += 1;
+
+        switch (escaped) {
+          case "\\":
+          case "'":
+          case '"':
+          case "/":
+            result += escaped;
+            break;
+          case "b":
+            result += "\b";
+            break;
+          case "f":
+            result += "\f";
+            break;
+          case "n":
+            result += "\n";
+            break;
+          case "r":
+            result += "\r";
+            break;
+          case "t":
+            result += "\t";
+            break;
+          case "u": {
+            const unicode = source.slice(index, index + 4);
+            if (/^[0-9a-fA-F]{4}$/.test(unicode)) {
+              result += String.fromCharCode(Number.parseInt(unicode, 16));
+              index += 4;
+            } else {
+              result += "u";
+            }
+            break;
+          }
+          default:
+            result += escaped;
+            break;
+        }
+
+        continue;
+      }
+
+      if (char === quote) {
+        return result;
+      }
+
+      result += char;
+    }
+
+    throw new Error("Unterminated string");
+  }
+
+  function parseNumericValue(): number {
+    const matchedNumber = source.slice(index).match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (!matchedNumber) {
+      throw new Error(`Invalid number at index ${index}`);
+    }
+
+    index += matchedNumber[0].length;
+    return Number(matchedNumber[0]);
+  }
+
+  function parseArrayValue(): unknown[] {
+    index += 1;
+    const result: unknown[] = [];
+    skipWhitespace();
+
+    if (source[index] === "]") {
+      index += 1;
+      return result;
+    }
+
+    while (index < source.length) {
+      result.push(parseValue());
+      skipWhitespace();
+
+      if (source[index] === ",") {
+        index += 1;
+        skipWhitespace();
+        continue;
+      }
+
+      if (source[index] === "]") {
+        index += 1;
+        return result;
+      }
+
+      throw new Error(`Expected , or ] at index ${index}`);
+    }
+
+    throw new Error("Unterminated array");
+  }
+
+  function parseObjectValue(): Record<string, unknown> {
+    index += 1;
+    const result: Record<string, unknown> = {};
+    skipWhitespace();
+
+    if (source[index] === "}") {
+      index += 1;
+      return result;
+    }
+
+    while (index < source.length) {
+      const key = parseValue();
+      if (typeof key !== "string") {
+        throw new Error(`Object keys must be strings at index ${index}`);
+      }
+
+      skipWhitespace();
+      if (source[index] !== ":") {
+        throw new Error(`Expected : at index ${index}`);
+      }
+
+      index += 1;
+      const value = parseValue();
+      result[key] = value;
+      skipWhitespace();
+
+      if (source[index] === ",") {
+        index += 1;
+        skipWhitespace();
+        continue;
+      }
+
+      if (source[index] === "}") {
+        index += 1;
+        return result;
+      }
+
+      throw new Error(`Expected , or } at index ${index}`);
+    }
+
+    throw new Error("Unterminated object");
+  }
+
+  function parseKeywordValue(): boolean | null {
+    if (source.startsWith("None", index)) {
+      index += 4;
+      return null;
+    }
+
+    if (source.startsWith("True", index)) {
+      index += 4;
+      return true;
+    }
+
+    if (source.startsWith("False", index)) {
+      index += 5;
+      return false;
+    }
+
+    throw new Error(`Unexpected token at index ${index}`);
+  }
+
+  function parseValue(): unknown {
+    skipWhitespace();
+
+    const currentChar = source[index];
+
+    if (currentChar === "{") {
+      return parseObjectValue();
+    }
+
+    if (currentChar === "[") {
+      return parseArrayValue();
+    }
+
+    if (currentChar === "'" || currentChar === '"') {
+      return parseQuotedString(currentChar);
+    }
+
+    if (currentChar === "-" || /\d/.test(currentChar || "")) {
+      return parseNumericValue();
+    }
+
+    return parseKeywordValue();
+  }
+
+  const value = parseValue();
+  skipWhitespace();
+
+  if (index !== source.length) {
+    throw new Error(`Unexpected trailing content at index ${index}`);
+  }
+
+  return value;
+}
+
+function tryParsePythonLikeLiteral(input: string): unknown | null {
+  try {
+    return parsePythonLikeLiteral(input);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeTimetableColumn(value: unknown): TimetableColumn | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const columnKey = parseString(value.columnKey);
+  if (!columnKey) {
+    return null;
+  }
+
+  return {
+    columnKey,
+    startTime: parseString(value.startTime),
+    endTime: parseString(value.endTime),
+  };
+}
+
+function normalizeTimetableCell(value: unknown): TimetableCell | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const columnKey = parseString(value.columnKey);
+  if (!columnKey) {
+    return null;
+  }
+
+  const rawText = parseString(value.rawText);
+  const title = parseString(value.title, rawText || "Untitled");
+
+  return {
+    columnKey,
+    colSpan: parseNumber(value.colSpan, 1),
+    rowSpan: parseNumber(value.rowSpan, 1),
+    rawText,
+    title,
+    startTime: parseString(value.startTime),
+    endTime: parseString(value.endTime),
+    note: typeof value.note === "string" ? value.note : undefined,
+  };
+}
+
+function normalizeTimetableRow(value: unknown, index: number): TimetableRow | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const rawCells = Array.isArray(value.cells) ? value.cells : [];
+
+  return {
+    rowIndex: parseNumber(value.rowIndex, index),
+    rowLabel: parseString(value.rowLabel, `Row ${index + 1}`),
+    cells: rawCells
+      .map((cell) => normalizeTimetableCell(cell))
+      .filter((cell): cell is TimetableCell => cell !== null),
+  };
+}
+
+function normalizeTimetableOcrShape(value: unknown): TimetableOcrOutput | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const rawColumns = Array.isArray(value.columns) ? value.columns : null;
+  const rawRows = Array.isArray(value.rows) ? value.rows : null;
+
+  if (!rawColumns || !rawRows) {
+    return null;
+  }
+
+  return {
+    columns: rawColumns
+      .map((column) => normalizeTimetableColumn(column))
+      .filter((column): column is TimetableColumn => column !== null),
+    rows: rawRows
+      .map((row, index) => normalizeTimetableRow(row, index))
+      .filter((row): row is TimetableRow => row !== null),
+  };
+}
+
+function normalizeTimetableOcrOutput(value: unknown): TimetableOcrOutput | null {
+  const directValue = normalizeTimetableOcrShape(value);
+  if (directValue) {
+    return directValue;
+  }
+
+  if (typeof value === "string") {
+    const parsedValue = tryParsePythonLikeLiteral(value);
+    return parsedValue ? normalizeTimetableOcrShape(parsedValue) : null;
+  }
+
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const stringCandidates = [value.ocr_text, value.raw_response];
+  for (const candidate of stringCandidates) {
+    if (typeof candidate !== "string") {
+      continue;
+    }
+
+    const parsedValue = tryParsePythonLikeLiteral(candidate);
+    const normalizedValue = parsedValue ? normalizeTimetableOcrShape(parsedValue) : null;
+    if (normalizedValue) {
+      return normalizedValue;
+    }
+  }
+
+  return null;
 }
 
 function getExtensionFromFileName(fileName: string): string | null {
@@ -235,7 +604,7 @@ export async function runTimetableInspection(
         success: parsedResponse.success,
         message: parsedResponse.message || "Timetable extracted successfully",
         metadata: parsedResponse.data || null,
-        ocrOutput: parsedResponse.ocrOutput || null,
+        ocrOutput: normalizeTimetableOcrOutput(parsedResponse.ocrOutput),
         activities: Array.isArray(parsedResponse.activities) ? parsedResponse.activities : [],
         rawResponse: parsedResponse,
       },

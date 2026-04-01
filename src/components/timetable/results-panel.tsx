@@ -130,6 +130,8 @@ function StatCard({
 
 function OverviewTab({ results }: { results: TimetableInspectionResponse }) {
   const metadata = results.metadata;
+  const columnCount = results.ocrOutput?.columns?.length ?? 0;
+  const rowCount = results.ocrOutput?.rows?.length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -153,7 +155,7 @@ function OverviewTab({ results }: { results: TimetableInspectionResponse }) {
         />
         <StatCard
           label="Days Processed"
-          value={String(metadata?.daysProcessed ?? results.ocrOutput?.rows.length ?? 0)}
+          value={String(metadata?.daysProcessed ?? rowCount)}
           helper="Distinct timetable day rows"
         />
         <StatCard
@@ -187,13 +189,13 @@ function OverviewTab({ results }: { results: TimetableInspectionResponse }) {
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Columns Returned</span>
               <span className="text-right font-medium">
-                {results.ocrOutput?.columns.length ?? 0}
+                {columnCount}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Rows Returned</span>
               <span className="text-right font-medium">
-                {results.ocrOutput?.rows.length ?? 0}
+                {rowCount}
               </span>
             </div>
           </CardContent>
@@ -236,12 +238,19 @@ function CellContent({ cell }: { cell: TimetableCell }) {
 }
 
 function OcrGridTab({ results }: { results: TimetableInspectionResponse }) {
-  const ocrOutput = results.ocrOutput;
-  if (!ocrOutput) {
+  const columns = results.ocrOutput?.columns ?? [];
+  const rows = results.ocrOutput?.rows ?? [];
+
+  if (columns.length === 0 || rows.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No OCR output was returned for this extraction.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          No deterministic output grid could be parsed for this extraction.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Check the raw JSON tab for the original backend payload.
+        </p>
+      </div>
     );
   }
 
@@ -250,17 +259,17 @@ function OcrGridTab({ results }: { results: TimetableInspectionResponse }) {
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           label="Time Columns"
-          value={String(ocrOutput.columns.length)}
+          value={String(columns.length)}
           helper="Named timetable periods returned"
         />
         <StatCard
           label="Day Rows"
-          value={String(ocrOutput.rows.length)}
+          value={String(rows.length)}
           helper="Day labels found in the OCR grid"
         />
         <StatCard
           label="Rendered Cells"
-          value={String(ocrOutput.rows.reduce((count, row) => count + row.cells.length, 0))}
+          value={String(rows.reduce((count, row) => count + row.cells.length, 0))}
           helper="Cells before any activity post-processing"
         />
       </div>
@@ -270,7 +279,7 @@ function OcrGridTab({ results }: { results: TimetableInspectionResponse }) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-32">Day</TableHead>
-              {ocrOutput.columns.map((column) => (
+              {columns.map((column) => (
                 <TableHead key={column.columnKey}>
                   <div className="space-y-0.5">
                     <p className="font-medium">{column.columnKey}</p>
@@ -283,7 +292,7 @@ function OcrGridTab({ results }: { results: TimetableInspectionResponse }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ocrOutput.rows.map((row) => (
+            {rows.map((row) => (
               <TableRow key={row.rowIndex}>
                 <TableCell className="align-top font-medium">{row.rowLabel}</TableCell>
                 {row.cells.map((cell, cellIndex) => (
