@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconBrain, IconFileSearch, IconArrowRight } from "@tabler/icons-react";
+import { IconBrain, IconFileSearch, IconArrowRight, IconScan } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,12 @@ const features = [
     icon: IconFileSearch,
     href: "/curriculum",
   },
+  {
+    title: "Timetable Extraction",
+    description: "Inspect and debug timetable extraction with raw OCR output, normalized activities, and backend metadata.",
+    icon: IconScan,
+    href: "/timetable",
+  },
 ];
 
 export default function Home() {
@@ -35,7 +41,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {features.map((feature) => (
               <Card key={feature.href} className="hover:shadow-md transition-shadow">
                 <CardHeader>

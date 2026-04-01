@@ -15,6 +15,7 @@ const PROMPT_GROUPS = [
     title: "Timetable Prompts",
     ids: [
       SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION,
+      SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION_STRUCTURED_DOCUMENTS,
       SYSTEM_PROMPT_IDS.TIMETABLE_VALIDATION,
       SYSTEM_PROMPT_IDS.TIMETABLE_LOOKUP,
       SYSTEM_PROMPT_IDS.LLM_VISUAL_OCR,
@@ -74,6 +75,8 @@ export default function PromptsPage() {
     switch (id) {
       case SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION:
         return "Extracts timetable data from images and OCR text into structured JSON format";
+      case SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION_STRUCTURED_DOCUMENTS:
+        return "Extracts timetable data from structured document formats into structured JSON format";
       case SYSTEM_PROMPT_IDS.TIMETABLE_VALIDATION:
         return "Validates and corrects extracted timetable entries for accuracy";
       case SYSTEM_PROMPT_IDS.TIMETABLE_LOOKUP:

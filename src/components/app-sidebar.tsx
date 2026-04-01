@@ -45,6 +45,11 @@ const data = {
           icon: IconScan,
         },
         {
+          title: "Timetable Extraction (Structured Documents)",
+          url: "/prompts/1016",
+          icon: IconFileText,
+        },
+        {
           title: "Timetable Validation",
           url: "/prompts/1002",
           icon: IconShieldCheck,
@@ -85,6 +90,11 @@ const data = {
       title: "Curriculum Extraction",
       url: "/curriculum",
       icon: IconFileSearch,
+    },
+    {
+      title: "Timetable Extraction",
+      url: "/timetable",
+      icon: IconScan,
     },
   ],
   navSecondary: [
