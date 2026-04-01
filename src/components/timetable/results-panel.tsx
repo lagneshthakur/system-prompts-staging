@@ -299,7 +299,6 @@ function OcrGridTab({ results }: { results: TimetableInspectionResponse }) {
                   <TableCell
                     key={`${row.rowIndex}-${cell.columnKey}-${cellIndex}`}
                     colSpan={cell.colSpan}
-                    rowSpan={cell.rowSpan}
                     className="min-w-32 align-top whitespace-normal"
                   >
                     <CellContent cell={cell} />
