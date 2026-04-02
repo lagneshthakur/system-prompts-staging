@@ -40,7 +40,7 @@ const data = {
       icon: IconBrain,
       items: [
         {
-          title: "Timetable Extraction",
+          title: "Timetable Extraction (Vision)",
           url: "/prompts/1001",
           icon: IconScan,
         },

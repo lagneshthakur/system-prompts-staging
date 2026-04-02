@@ -131,7 +131,7 @@ export const SYSTEM_PROMPT_IDS = {
 } as const;
 
 export const SYSTEM_PROMPT_NAMES = {
-  [SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION]: 'Timetable Extraction',
+  [SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION]: 'Timetable Extraction (Vision)',
   [SYSTEM_PROMPT_IDS.TIMETABLE_VALIDATION]: 'Timetable Validation',
   [SYSTEM_PROMPT_IDS.TIMETABLE_LOOKUP]: 'Timetable Lookup',
   [SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION]: 'Curriculum Extraction',
