@@ -57,7 +57,7 @@ export interface TimetableActivity {
   start_time: string;
   end_time: string;
   title: string;
-  notes: string;
+  notes: string | null;
 }
 
 export interface TimetableInspectionResponse {
@@ -65,6 +65,7 @@ export interface TimetableInspectionResponse {
   message: string;
   metadata: TimetableExtractionMetadata | null;
   ocrOutput: TimetableOcrOutput | null;
+  rawOcrOutput: unknown | null;
   activities: TimetableActivity[];
   rawResponse: BackendTimetableResponse;
 }
@@ -605,6 +606,7 @@ export async function runTimetableInspection(
         message: parsedResponse.message || "Timetable extracted successfully",
         metadata: parsedResponse.data || null,
         ocrOutput: normalizeTimetableOcrOutput(parsedResponse.ocrOutput),
+        rawOcrOutput: parsedResponse.ocrOutput ?? null,
         activities: Array.isArray(parsedResponse.activities) ? parsedResponse.activities : [],
         rawResponse: parsedResponse,
       },
