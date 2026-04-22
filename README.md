@@ -5,15 +5,15 @@ A user-friendly web application for **designers and non-technical users** to man
 ## 📋 What This Tool Does
 
 This dashboard lets you:
-- ✅ **View and edit 4 system prompts** that control AI behavior
+- ✅ **View and edit system prompts** that control AI behavior
 - ✅ **Preserve exact text formatting** (spaces, line breaks, special characters)
 - ✅ **Save changes safely** to the backend database
-- ✅ **Navigate easily** between different prompt types
+- ✅ **Navigate easily** between different prompt groups
 - ✅ **See real-time character counts** and last saved timestamps
 
-### 🤖 The 4 System Prompts You Can Edit:
+### 🤖 Core Prompt Workflows You Can Edit:
 
-1. **📊 Timetable Extraction** (ID: 1001) - Controls how AI extracts timetable data from images
+1. **📊 Timetable Extraction** (ID: 1016) - Controls how AI extracts timetable data from timetable uploads
 2. **🛡️ Timetable Validation** (ID: 1002) - Controls how AI validates extracted timetable data
 3. **🔍 Timetable Lookup** (ID: 1003) - Controls how AI searches and retrieves timetable information
 4. **📄 Curriculum Extraction** (ID: 1004) - Controls how AI processes curriculum documents
@@ -69,7 +69,7 @@ Open your web browser and go to: **http://localhost:3000**
 ## 🎯 How to Use the Dashboard
 
 ### **Navigation**
-- **Left Sidebar**: Click on any of the 4 prompt types to edit them
+- **Left Sidebar**: Click on any prompt type to edit it
 - **Dashboard Home**: Overview of all prompts with quick access buttons
 - **Back Button**: Return to dashboard from any prompt editor
 

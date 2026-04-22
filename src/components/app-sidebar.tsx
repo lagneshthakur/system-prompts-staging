@@ -10,8 +10,6 @@ import {
   IconShieldCheck,
   IconSearch,
   IconFileText,
-  IconEye,
-  IconRepeat,
   IconCategory,
   IconFileSearch,
 } from "@tabler/icons-react"
@@ -40,14 +38,9 @@ const data = {
       icon: IconBrain,
       items: [
         {
-          title: "Timetable Extraction (Vision)",
-          url: "/prompts/1001",
-          icon: IconScan,
-        },
-        {
-          title: "Timetable Extraction (Structured Documents)",
+          title: "Timetable Extraction",
           url: "/prompts/1016",
-          icon: IconFileText,
+          icon: IconScan,
         },
         {
           title: "Timetable Validation",
@@ -63,16 +56,6 @@ const data = {
           title: "Curriculum Extraction",
           url: "/prompts/1004",
           icon: IconFileText,
-        },
-        {
-          title: "LLM Visual OCR",
-          url: "/prompts/1005",
-          icon: IconEye,
-        },
-        {
-          title: "Timetable Event Detection",
-          url: "/prompts/1006",
-          icon: IconRepeat,
         },
         {
           title: "Document Type Classification",

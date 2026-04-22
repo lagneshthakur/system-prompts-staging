@@ -111,12 +111,11 @@ export const apiClient = new ApiClient(API_BASE_URL);
 
 // System Prompt IDs and Names (matching backend)
 export const SYSTEM_PROMPT_IDS = {
-  TIMETABLE_EXTRACTION: 1001,
+  // Shared timetable extraction prompt used by the current pipeline across uploads.
+  TIMETABLE_EXTRACTION: 1016,
   TIMETABLE_VALIDATION: 1002,
   TIMETABLE_LOOKUP: 1003,
   CURRICULUM_EXTRACTION: 1004,
-  LLM_VISUAL_OCR: 1005,
-  TIMETABLE_EVENT_DETECTION: 1006,
   DOCUMENT_TYPE_CLASSIFICATION: 1007,
   YEAR_FILTER: 1008,
   // Document-type-specific curriculum extraction prompts
@@ -127,16 +126,13 @@ export const SYSTEM_PROMPT_IDS = {
   CURRICULUM_EXTRACTION_LESSON_WEEK: 1013,
   CURRICULUM_EXTRACTION_OTHER: 1014,
   COVER_FOCUS_CARD: 1015,
-  TIMETABLE_EXTRACTION_STRUCTURED_DOCUMENTS: 1016,
 } as const;
 
 export const SYSTEM_PROMPT_NAMES = {
-  [SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION]: 'Timetable Extraction (Vision)',
+  [SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION]: 'Timetable Extraction',
   [SYSTEM_PROMPT_IDS.TIMETABLE_VALIDATION]: 'Timetable Validation',
   [SYSTEM_PROMPT_IDS.TIMETABLE_LOOKUP]: 'Timetable Lookup',
   [SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION]: 'Curriculum Extraction',
-  [SYSTEM_PROMPT_IDS.LLM_VISUAL_OCR]: 'LLM Visual OCR',
-  [SYSTEM_PROMPT_IDS.TIMETABLE_EVENT_DETECTION]: 'Timetable Event Detection',
   [SYSTEM_PROMPT_IDS.DOCUMENT_TYPE_CLASSIFICATION]: 'Document Type Classification',
   [SYSTEM_PROMPT_IDS.YEAR_FILTER]: 'Year Filter',
   [SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_MULTIPLE_YEAR]: 'Curriculum Extraction (Multiple Year)',
@@ -146,7 +142,6 @@ export const SYSTEM_PROMPT_NAMES = {
   [SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_LESSON_WEEK]: 'Curriculum Extraction (Lesson/Week)',
   [SYSTEM_PROMPT_IDS.CURRICULUM_EXTRACTION_OTHER]: 'Curriculum Extraction (Other)',
   [SYSTEM_PROMPT_IDS.COVER_FOCUS_CARD]: 'Cover Focus Card',
-  [SYSTEM_PROMPT_IDS.TIMETABLE_EXTRACTION_STRUCTURED_DOCUMENTS]: 'Timetable Extraction (Structured Documents)',
 } as const;
 
 export type SystemPromptId = typeof SYSTEM_PROMPT_IDS[keyof typeof SYSTEM_PROMPT_IDS];

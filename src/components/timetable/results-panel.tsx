@@ -37,47 +37,74 @@ interface DebugSection {
   consumedScalarKeys: string[];
 }
 
+type DebugSectionDefinition = {
+  key: string;
+  path: readonly (string | number)[];
+  title: string;
+  description: string;
+};
+
 const STRUCTURED_PIPELINE_EXTENSIONS = new Set(["docx", "xlsx", "pptx"]);
 const WEEKDAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const DEBUG_SECTION_DEFINITIONS = [
+const DEBUG_SECTION_DEFINITIONS: readonly DebugSectionDefinition[] = [
+  {
+    key: "vision.adapter_output",
+    path: ["vision", "adapter_output"],
+    title: "Textract Adapter",
+    description: "Adapter output just before the shared timetable pipeline begins at pass 1.",
+  },
+  {
+    key: "vision.outcome",
+    path: ["vision", "outcome"],
+    title: "Vision Outcome",
+    description: "Final vision-path outcome showing whether Textract produced a usable table or failed earlier.",
+  },
   {
     key: "timetableRootDebug",
+    path: ["timetableRootDebug"],
     title: "Table Selection",
     description: "Shows how candidate tables were scored before the extractor chose one.",
   },
   {
     key: "timetableRoot",
+    path: ["timetableRoot"],
     title: "Timetable Root",
     description: "Normalized deterministic root after table selection and shape cleanup.",
   },
   {
     key: "pass1",
+    path: ["pass1"],
     title: "Pass 1",
     description: "Raw grid after parser normalization and vertical-merge fixes.",
   },
   {
     key: "pass2",
+    path: ["pass2"],
     title: "Pass 2",
     description: "Grid enriched with structural labels and parsed time metadata.",
   },
   {
     key: "pass3",
+    path: ["pass3"],
     title: "Pass 3",
     description: "Fully timed day blocks before semantic routing decisions.",
   },
   {
     key: "pass4",
+    path: ["pass4"],
     title: "Pass 4",
     description: "Routing output showing which blocks were skipped or sent to the LLM.",
   },
   {
     key: "pass5",
+    path: ["pass5"],
     title: "Pass 5",
     description: "LLM responses matched back onto the routed timetable blocks.",
   },
   {
     key: "pass6",
+    path: ["pass6"],
     title: "Pass 6",
     description: "Final timetable events returned by the structured document pipeline.",
   },
@@ -108,6 +135,29 @@ function formatLabel(value: string): string {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getValueAtPath(source: unknown, path: readonly (string | number)[]): unknown {
+  let current = source;
+
+  for (const segment of path) {
+    if (typeof segment === "number") {
+      if (!Array.isArray(current)) {
+        return undefined;
+      }
+
+      current = current[segment];
+      continue;
+    }
+
+    if (!isRecord(current)) {
+      return undefined;
+    }
+
+    current = current[segment];
+  }
+
+  return current;
 }
 
 function getFileExtension(fileName: string | null | undefined): string | null {
@@ -366,6 +416,32 @@ function countRoutes(days: unknown[]): { skip: number; send: number } {
   );
 }
 
+function getVisionAdapterTableCount(data: Record<string, unknown>): number | null {
+  const pages = Array.isArray(data.pages) ? data.pages : [];
+  if (pages.length === 0) {
+    return null;
+  }
+
+  const selectedPageNumber =
+    typeof data.selected_page_number === "number" && Number.isFinite(data.selected_page_number)
+      ? data.selected_page_number
+      : null;
+
+  if (selectedPageNumber !== null) {
+    const selectedPage = pages.find(
+      (page) => isRecord(page) && page.page_number === selectedPageNumber && Array.isArray(page.tables)
+    );
+    if (selectedPage && isRecord(selectedPage) && Array.isArray(selectedPage.tables)) {
+      return selectedPage.tables.length;
+    }
+  }
+
+  const firstPageWithTables = pages.find((page) => isRecord(page) && Array.isArray(page.tables));
+  return firstPageWithTables && isRecord(firstPageWithTables) && Array.isArray(firstPageWithTables.tables)
+    ? firstPageWithTables.tables.length
+    : null;
+}
+
 function getDebugSectionSummary(key: string, data: unknown): {
   items: SummaryItem[];
   consumedScalarKeys: string[];
@@ -375,6 +451,51 @@ function getDebugSectionSummary(key: string, data: unknown): {
   }
 
   switch (key) {
+    case "vision.adapter_output": {
+      const pageCount = Array.isArray(data.pages) ? data.pages.length : 0;
+      const tableCount = getVisionAdapterTableCount(data);
+
+      return {
+        items: [
+          {
+            label: "Selected Page",
+            value: formatScalar(data.selected_page_number ?? "Unknown"),
+          },
+          {
+            label: "Selected Table",
+            value: formatScalar(data.selected_table_index ?? "Unknown"),
+          },
+          {
+            label: "Pages",
+            value: String(pageCount),
+          },
+          {
+            label: "Tables On Selected Page",
+            value: tableCount === null ? "Unknown" : String(tableCount),
+          },
+        ],
+        consumedScalarKeys: ["selected_page_number", "selected_table_index"],
+      };
+    }
+    case "vision.outcome": {
+      return {
+        items: [
+          {
+            label: "Status",
+            value: typeof data.status === "string" ? formatLabel(data.status) : "Unknown",
+          },
+          {
+            label: "Selected Page",
+            value: formatScalar(data.selected_page_number ?? "Unknown"),
+          },
+          {
+            label: "Selected Table",
+            value: formatScalar(data.selected_table_index ?? "Unknown"),
+          },
+        ],
+        consumedScalarKeys: ["status", "selected_page_number", "selected_table_index"],
+      };
+    }
     case "timetableRootDebug": {
       const selection = isRecord(data.selection) ? data.selection : null;
       const tables = Array.isArray(selection?.tables) ? selection.tables : [];
@@ -563,7 +684,7 @@ function buildDebugSections(rawOcrOutput: unknown): DebugSection[] {
   }
 
   return DEBUG_SECTION_DEFINITIONS.flatMap((definition) => {
-    const data = rawOcrOutput[definition.key];
+    const data = getValueAtPath(rawOcrOutput, definition.path);
     if (typeof data === "undefined") {
       return [];
     }
@@ -651,10 +772,10 @@ function DebugPipelineTab({ results }: { results: TimetableInspectionResponse })
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          No structured debug pipeline data was returned for this extraction.
+          No vision or pipeline backdoor data was returned for this extraction.
         </p>
         <p className="text-sm text-muted-foreground">
-          Image and PDF responses may only expose the deterministic output and raw payload.
+          The backend response did not include any inspectable stage outputs.
         </p>
       </div>
     );
@@ -666,7 +787,7 @@ function DebugPipelineTab({ results }: { results: TimetableInspectionResponse })
         <CardHeader className="px-4">
           <CardTitle className="text-base">Pipeline Debugging</CardTitle>
           <CardDescription>
-            Inspect table selection plus passes 1 through 6 to see exactly where extraction behavior changes.
+            Inspect the vision path, table selection, and passes 1 through 6 to see exactly where extraction behavior changes.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4">
